@@ -1,0 +1,10 @@
+{
+  "id": "biblelink",
+  "name": "BibleLink",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Simple Bible study with ASV, SQLite/XML imports, and Literal Word links.",
+  "author": "chibashr",
+  "authorUrl": "https://github.com/chibashr",
+  "isDesktopOnly": true
+} 

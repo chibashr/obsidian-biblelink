@@ -1,0 +1,28 @@
+{
+  "defaultTranslation": "ASV",
+  "outputType": "text",
+  "referenceStyle": "detailed",
+  "customReferenceFormat": "{book} {chapter}:{verse} ({translation})",
+  "enableShortcuts": true,
+  "shortcuts": {},
+  "enableDataviewMetadata": true,
+  "dataviewMetadataFields": [
+    "book",
+    "chapter",
+    "verse",
+    "translation",
+    "text",
+    "reference",
+    "language",
+    "category"
+  ],
+  "showVerseNumbers": true,
+  "showTranslationAbbr": true,
+  "showBookAbbr": false,
+  "textColor": "#2e7d32",
+  "backgroundColor": "#f1f8e9",
+  "borderStyle": "solid",
+  "borderColor": "#4caf50",
+  "fontSize": "medium",
+  "fontStyle": "normal"
+}

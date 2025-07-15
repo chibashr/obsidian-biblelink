@@ -1,0 +1,32 @@
+{
+  "translations": {
+    "ASV": {
+      "name": "American Standard Version",
+      "language": "en",
+      "books": {
+        "Genesis": {
+          "name": "Genesis",
+          "chapters": {
+            "1": {
+              "verses": {
+                "1": "In the beginning God created the heavens and the earth.",
+                "2": "And the earth was waste and void; and darkness was upon the face of the deep: and the Spirit of God moved upon the face of the waters.",
+                "3": "And God said, Let there be light: and there was light."
+              }
+            }
+          }
+        },
+        "John": {
+          "name": "John",
+          "chapters": {
+            "3": {
+              "verses": {
+                "16": "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 

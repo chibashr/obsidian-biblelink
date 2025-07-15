@@ -1,0 +1,26 @@
+{
+  "defaultTranslation": "NASB",
+  "outputType": "codeblock",
+  "showTranslationAbbr": true,
+  "showBookAbbr": false,
+  "enableShortcuts": true,
+  "shortcuts": {},
+  "enableDataviewMetadata": true,
+  "dataviewMetadataFields": [
+    "book",
+    "chapter",
+    "verse",
+    "translation",
+    "text",
+    "reference",
+    "language",
+    "category"
+  ],
+  "codeBlockBackgroundColor": "#363636",
+  "codeBlockHeadingStyle": "detailed",
+  "codeBlockTextColor": "#cbdbda",
+  "codeBlockVerseNumberColor": "#7f8c8d",
+  "codeBlockLanguage": "bible",
+  "modalOutputType": "codeblock",
+  "modalOptions": []
+}
