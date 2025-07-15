@@ -1,9 +1,9 @@
 {
   "id": "biblelink",
   "name": "BibleLink",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minAppVersion": "0.15.0",
-  "description": "Simple Bible study with ASV, SQLite/XML imports, and Literal Word links.",
+  "description": "Simple Bible study with ASV, 140+ translations, code blocks, shortcuts, and Dataview integration.",
   "author": "chibashr",
   "authorUrl": "https://github.com/chibashr",
   "isDesktopOnly": true

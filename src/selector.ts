@@ -16,6 +16,7 @@ export class BibleSelectorModal extends Modal {
     // Add these fields to the class
     private referenceInput: import('obsidian').TextComponent;
     private referenceWarning: HTMLElement;
+    private translationDropdown: import('obsidian').DropdownComponent;
 
     constructor(
         app: App,
@@ -56,6 +57,7 @@ export class BibleSelectorModal extends Modal {
             .setName('Translation')
             .setDesc('Choose a Bible translation')
             .addDropdown(dropdown => {
+                this.translationDropdown = dropdown;
                 const translations = this.db.getTranslations();
                 const translationOptions: Record<string, string> = {};
                 translations.forEach(trans => {
@@ -69,7 +71,6 @@ export class BibleSelectorModal extends Modal {
                         this.renderBookGrid(bookGridContainer);
                         this.renderChapterGrid(chapterGridContainer);
                         this.renderVerseGrid(verseGridContainer);
-                        this.updatePreview();
                     });
             });
 
@@ -99,20 +100,13 @@ export class BibleSelectorModal extends Modal {
                     this.plugin.settings.modalOutputType = this.selectedOutputType;
                     this.plugin.saveSettings();
                     this.updateOptionsSection();
-                    this.updatePreview();
                 }));
 
         // Options Section (only for code blocks)
         const optionsContainer = contentEl.createDiv();
         this.updateOptionsSection(optionsContainer);
 
-        // Preview Section
-        contentEl.createEl('h3', { text: 'Preview' });
-        const previewEl = contentEl.createDiv({ id: 'bible-preview', cls: 'bible-preview' });
-        previewEl.style.padding = '10px';
-        previewEl.style.marginTop = '10px';
-        previewEl.style.border = '1px solid var(--background-modifier-border)';
-        previewEl.style.borderRadius = '4px';
+
 
         // Submit Button
         const submitButton = new Setting(contentEl)
@@ -268,7 +262,6 @@ export class BibleSelectorModal extends Modal {
             this.renderChapterGrid(container);
             this.renderVerseGrid(document.querySelector('.biblelink-verse-grid-container'));
             this.updateReferenceInputFromSelection();
-            this.updatePreview();
         };
         chapters.forEach(chapter => {
             const btn = grid.createEl('button', {
@@ -301,7 +294,6 @@ export class BibleSelectorModal extends Modal {
                 this.renderChapterGrid(container);
                 this.renderVerseGrid(document.querySelector('.biblelink-verse-grid-container'));
                 this.updateReferenceInputFromSelection();
-                this.updatePreview();
             };
         });
     }
@@ -324,7 +316,6 @@ export class BibleSelectorModal extends Modal {
             this.selectedVerses = new Set(verses);
             this.renderVerseGrid(container);
             this.updateReferenceInputFromSelection();
-            this.updatePreview();
         };
         verses.forEach(verse => {
             const btn = grid.createEl('button', {
@@ -354,7 +345,6 @@ export class BibleSelectorModal extends Modal {
                 this.selectedEndVerse = verse;
                 this.renderVerseGrid(container);
                 this.updateReferenceInputFromSelection();
-                this.updatePreview();
             };
         });
     }
@@ -410,7 +400,6 @@ export class BibleSelectorModal extends Modal {
                         }
                         this.updateEndChapterDropdown(target);
                         this.updateVerseDropdown();
-                        this.updatePreview();
                     });
             });
 
@@ -451,7 +440,6 @@ export class BibleSelectorModal extends Modal {
                     .onChange(value => {
                         this.selectedEndChapter = parseInt(value);
                         this.updateVerseDropdown();
-                        this.updatePreview();
                     });
             });
     }
@@ -492,7 +480,6 @@ export class BibleSelectorModal extends Modal {
                                 this.selectedEndChapter = null;
                             }
                             this.updateEndVerseDropdown(target);
-                            this.updatePreview();
                         });
                 });
         }
@@ -541,7 +528,6 @@ export class BibleSelectorModal extends Modal {
                     .setValue((this.selectedEndVerse || this.selectedStartVerse).toString())
                     .onChange(value => {
                         this.selectedEndVerse = parseInt(value);
-                        this.updatePreview();
                     });
             });
     }
@@ -566,7 +552,6 @@ export class BibleSelectorModal extends Modal {
                     this.updateOption('verse', value);
                     this.plugin.settings.modalOptions = [...this.selectedOptions];
                     this.plugin.saveSettings();
-                    this.updatePreview();
                 }));
 
         // Chapter numbers
@@ -579,7 +564,6 @@ export class BibleSelectorModal extends Modal {
                     this.updateOption('chapter', value);
                     this.plugin.settings.modalOptions = [...this.selectedOptions];
                     this.plugin.saveSettings();
-                    this.updatePreview();
                 }));
 
         // Red letter text
@@ -592,7 +576,6 @@ export class BibleSelectorModal extends Modal {
                     this.updateOption('red-text', value);
                     this.plugin.settings.modalOptions = [...this.selectedOptions];
                     this.plugin.saveSettings();
-                    this.updatePreview();
                 }));
 
         // Link to Bible Gateway
@@ -605,7 +588,6 @@ export class BibleSelectorModal extends Modal {
                     this.updateOption('link', value);
                     this.plugin.settings.modalOptions = [...this.selectedOptions];
                     this.plugin.saveSettings();
-                    this.updatePreview();
                 }));
     }
 
@@ -617,87 +599,18 @@ export class BibleSelectorModal extends Modal {
         }
     }
 
-    private updatePreview() {
-        const previewElement = document.getElementById('bible-preview');
-        if (!previewElement) return;
 
-        if (!this.selectedBook || !this.selectedTranslation) {
-            previewElement.setText('Preview will appear here when you select a verse.');
+
+    private insertReference() {
+        if (!this.selectedBook) {
+            new Notice('Please select a book');
             return;
         }
 
-        // Clear preview
-        previewElement.empty();
-
-        // Gather selected chapters and verses
-        const chapters = this.selectedChapters.size > 0
-            ? Array.from(this.selectedChapters).sort((a, b) => a - b)
-            : [this.selectedStartChapter];
-        const verses = this.selectedVerses.size > 0
-            ? Array.from(this.selectedVerses).sort((a, b) => a - b)
-            : [this.selectedStartVerse];
-
-        // Options
-        const showVerseNumbers = this.selectedOptions.includes('verse');
-        const showChapterNumbers = this.selectedOptions.includes('chapter');
-        const redText = this.selectedOptions.includes('red-text');
-
-        // Render preview
-        chapters.forEach(chapter => {
-            if (showChapterNumbers) {
-                const chapterHeader = previewElement.createEl('div', { text: `Chapter ${chapter}`, cls: 'biblelink-preview-chapter-header' });
-                chapterHeader.style.fontWeight = 'bold';
-                chapterHeader.style.marginTop = '0.5em';
-            }
-            const verseContainer = previewElement.createDiv({ cls: 'biblelink-preview-verse-container' });
-            let versesToShow = verses;
-            // If only one chapter, show selected verses; if multiple chapters, show all verses in each
-            if (chapters.length > 1 || this.selectedVerses.size === 0) {
-                versesToShow = this.db.getVersesForChapter(
-                    this.selectedBook!,
-                    chapter,
-                    this.selectedTranslation!
-                );
-            }
-            versesToShow.forEach(verseNum => {
-                const verseData = this.db.getVerse(
-                    this.selectedBook!,
-                    chapter,
-                    verseNum,
-                    this.selectedTranslation!
-                );
-                if (!verseData) return;
-                let text = this.db.applyProcessingRules(verseData.text, this.selectedTranslation!);
-                const verseLine = verseContainer.createDiv({ cls: 'biblelink-preview-verse-line' });
-                if (showVerseNumbers) {
-                    verseLine.createEl('sup', { text: verseNum.toString(), cls: 'biblelink-preview-verse-number' });
-                }
-                if (redText) {
-                    // Simple red-letter: wrap words 'Jesus' or in quotes in red (customize as needed)
-                    const words = text.split(' ');
-                    words.forEach((word, i) => {
-                        const isJesusWord = this.plugin['isJesusWord']?.(word) || false;
-                        const span = verseLine.createSpan({
-                            text: word + (i < words.length - 1 ? ' ' : ''),
-                            cls: isJesusWord ? 'red-letter-text' : ''
-                        });
-                        if (isJesusWord) span.style.color = 'red';
-                    });
-                } else {
-                    verseLine.createSpan({ text });
-                }
-            });
-        });
-
-        // Add reference at the bottom
-        let reference = `${this.selectedBook} ${chapters.join(',')}`;
-        if (verses.length > 0) reference += ':' + verses.join(',');
-        previewElement.createEl('div', { text: `${reference} (${this.selectedTranslation})`, cls: 'biblelink-preview-ref' });
-    }
-
-    private insertReference() {
-        if (!this.selectedBook || !this.selectedTranslation) {
-            new Notice('Please select a book and translation');
+        // Use default translation if none is selected
+        const translation = this.selectedTranslation || this.plugin.settings.defaultTranslation;
+        if (!translation) {
+            new Notice('Please select a translation');
             return;
         }
 
@@ -718,7 +631,7 @@ export class BibleSelectorModal extends Modal {
             reference += `-${this.selectedEndChapter}`;
         }
 
-        this.onSubmit(reference, this.selectedTranslation, this.selectedOutputType, this.selectedOptions);
+        this.onSubmit(reference, translation, this.selectedOutputType, this.selectedOptions);
         this.close();
     }
 
@@ -726,6 +639,9 @@ export class BibleSelectorModal extends Modal {
     private handleReferenceInput(value: string) {
         if (!value || value.trim() === '') {
             this.referenceWarning.style.display = 'none';
+            // Clear selections when input is empty
+            this.selectedChapters.clear();
+            this.selectedVerses.clear();
             return;
         }
         // Parse reference: Book Chapter:Verse[-Verse] or Book Chapter
@@ -749,16 +665,31 @@ export class BibleSelectorModal extends Modal {
             this.referenceWarning.textContent = 'Book not found.';
             return;
         }
+        
+        // Clear grid selections when using manual input
+        this.selectedChapters.clear();
+        this.selectedVerses.clear();
+        
         this.selectedBook = foundBook;
         this.selectedStartChapter = chapterNum;
         this.selectedEndChapter = chapterNum;
         this.selectedStartVerse = startVerseNum;
         this.selectedEndVerse = endVerseNum;
-        // Update dropdowns and preview
+        
+        // Ensure translation is set to default if not already selected
+        if (!this.selectedTranslation) {
+            this.selectedTranslation = this.plugin.settings.defaultTranslation;
+        }
+        
+        // Update translation dropdown to reflect the selected translation
+        if (this.translationDropdown) {
+            this.translationDropdown.setValue(this.selectedTranslation);
+        }
+        
+        // Update dropdowns
         this.renderBookGrid(document.querySelector('.biblelink-book-grid-container'));
         this.renderChapterGrid(document.querySelector('.biblelink-chapter-grid-container'));
         this.renderVerseGrid(document.querySelector('.biblelink-verse-grid-container'));
         this.updateReferenceInputFromSelection();
-        this.updatePreview();
     }
 } 

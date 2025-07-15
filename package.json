@@ -1,7 +1,7 @@
 {
   "name": "obsidian-biblelink",
-  "version": "1.0.0",
-  "description": "Simple Bible study with ASV, SQLite/XML imports, and Literal Word links.",
+  "version": "1.1.0",
+  "description": "Simple Bible study with ASV, 140+ translations, code blocks, shortcuts, and Dataview integration.",
   "main": "main.js",
   "scripts": {
     "build": "node esbuild.config.mjs",
@@ -14,7 +14,10 @@
     "obsidian",
     "bible",
     "study",
-    "plugin"
+    "plugin",
+    "dataview",
+    "codeblocks",
+    "shortcuts"
   ],
   "author": "chibashr",
   "license": "MIT",

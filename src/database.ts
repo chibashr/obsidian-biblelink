@@ -40,6 +40,25 @@ export class BibleDatabase {
     private isInitialized: boolean = false;
     private isUnloading: boolean = false;
 
+    // Chronological order of Bible books
+    private static readonly CHRONOLOGICAL_BOOK_ORDER = [
+        'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+        'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+        '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles',
+        'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms',
+        'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah',
+        'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel',
+        'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah',
+        'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai',
+        'Zechariah', 'Malachi', 'Matthew', 'Mark', 'Luke',
+        'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians',
+        'Galatians', 'Ephesians', 'Philippians', 'Colossians',
+        '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy',
+        'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter',
+        '2 Peter', '1 John', '2 John', '3 John', 'Jude',
+        'Revelation'
+    ];
+
     constructor(plugin: Plugin, dataPath: string = 'data') {
         this.plugin = plugin;
         this.dataPath = dataPath;
@@ -130,7 +149,25 @@ export class BibleDatabase {
         for (const verse of this.data.verses) {
             books.add(verse.book);
         }
-        return Array.from(books).sort();
+        
+        // Sort books in chronological order
+        const bookArray = Array.from(books);
+        return bookArray.sort((a, b) => {
+            const aIndex = BibleDatabase.CHRONOLOGICAL_BOOK_ORDER.indexOf(a);
+            const bIndex = BibleDatabase.CHRONOLOGICAL_BOOK_ORDER.indexOf(b);
+            
+            // If both books are in the chronological order, sort by their position
+            if (aIndex !== -1 && bIndex !== -1) {
+                return aIndex - bIndex;
+            }
+            
+            // If only one book is in the chronological order, prioritize it
+            if (aIndex !== -1) return -1;
+            if (bIndex !== -1) return 1;
+            
+            // If neither book is in the chronological order, sort alphabetically
+            return a.localeCompare(b);
+        });
     }
 
     public getChaptersForBook(book: string, translationAbbr: string): number[] {

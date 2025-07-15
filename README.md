@@ -13,12 +13,23 @@ A free, open-source Obsidian plugin designed for minimal, intuitive Bible study,
 - **Multiple Output Formats**: 
   - Full verse text with reference
   - [Literal Word](https://literalword.com) links
+  - **Code blocks** with customizable styling
+- **Advanced Code Block Features**:
+  - Customizable background and text colors
+  - Multiple heading styles (none, simple, detailed)
+  - Verse number highlighting
+  - Red-letter text for Jesus' words
+  - Configurable language identifier
 - **Translation Management**: 
   - One-click download of 140+ Bible translations
-  - Upload custom Bible databases
+  - Upload custom Bible databases (SQLite)
   - Import XML Bible files (e.g., Bible_English_NASB_Strong.xml)
+  - Edit translation metadata and processing rules
+- **Keyboard Shortcuts**: Quick access to frequently used verses
 - **Dataview Integration**: Query Bible verses with basic Dataview syntax
 - **Virtual Notes**: Automatically creates Dataview-compatible notes for referenced verses
+- **Reference Parsing**: Supports complex references like "John 1:13-25" or "Genesis 1:1-2:3"
+- **Modal Persistence**: Remembers your last used settings
 
 ## Installation
 
@@ -51,6 +62,88 @@ John 3:16 (ASV): For God so loved the world, that he gave his only begotten Son,
 ```
 [John 3:16](https://literalword.com/?q=John+3%3A16)
 ```
+
+### Code Block Output
+````markdown
+```bible[red-letter,detailed]
+John 3:16 ASV
+For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.
+```
+````
+
+### Complex References
+- **Single verse**: `John 3:16`
+- **Verse range**: `John 1:13-25`
+- **Chapter**: `Genesis 1`
+- **Cross-chapter**: `Genesis 1:1-2:3`
+
+## Code Block Features
+
+### Syntax Options
+Use options in square brackets after the language identifier:
+
+```markdown
+```bible[option1,option2]
+reference
+```
+```
+
+### Available Options
+- `red-letter` - Highlights Jesus' words in red
+- `simple` - Simple heading style (John 3:16)
+- `detailed` - Detailed heading style (John 3:16 ASV)
+- `none` - No heading
+- `verse-numbers` - Shows verse numbers
+- `no-verse-numbers` - Hides verse numbers
+
+### Examples
+
+#### Basic Code Block
+````markdown
+```bible
+John 3:16
+For God so loved the world...
+```
+````
+
+#### Red Letter Text
+````markdown
+```bible[red-letter]
+John 14:6
+I am the way, and the truth, and the life...
+```
+````
+
+#### Custom Styling
+````markdown
+```bible[detailed,verse-numbers]
+John 3:16-17 ASV
+For God so loved the world...
+```
+````
+
+## Keyboard Shortcuts
+
+Configure quick access to frequently used verses:
+
+### Default Shortcuts
+- `jn316` → John 3:16
+- `gen11` → Genesis 1:1
+- `ps231` → Psalm 23:1
+- `rom828` → Romans 8:28
+- `jn11` → John 1:1
+
+### Adding Custom Shortcuts
+1. Go to Plugin Settings → BibleLink → Shortcuts
+2. Click "Add Shortcut"
+3. Enter shortcut key (e.g., `jn1414`)
+4. Enter reference (e.g., `John 14:14`)
+5. Save
+
+### Using Shortcuts
+- Type the shortcut in any note
+- Press `Ctrl+Enter` (or `Cmd+Enter` on Mac)
+- The reference is automatically inserted
 
 ## Translation Management
 
@@ -88,7 +181,7 @@ BibleLink provides access to **140+ Bible translations** from the [scrollmapper/
 ### Adding Translations
 
 #### One-Click Downloads
-- Go to Plugin Settings → BibleLink
+- Go to Plugin Settings → BibleLink → Translations
 - Browse the "Popular Translations" or "All Available Translations" sections
 - Click any translation abbreviation to download instantly
 - Translations are stored locally for offline access
@@ -98,10 +191,38 @@ BibleLink provides access to **140+ Bible translations** from the [scrollmapper/
 - Click "Upload XML" to import XML Bible files
 - Supports both scrollmapper format and custom schemas
 
+#### Edit Translation Metadata
+- Click the edit icon next to any translation
+- Modify name, abbreviation, language, category
+- Add custom processing rules for text formatting
+
 ### Removing Translations
 - Use the dropdown in settings to select a translation
 - Click "Remove" (ASV cannot be removed)
 - Deleted translations are permanently removed from the database
+
+## Settings
+
+### Basic Settings
+- **Default Translation**: Choose your preferred Bible translation
+- **Default Output Type**: text, link, or codeblock
+- **Show Translation Abbreviation**: Include translation abbreviation in output
+- **Show Book Abbreviations**: Use abbreviated book names (e.g., Jn instead of John)
+
+### Code Block Styling
+- **Background Color**: Customize code block background
+- **Text Color**: Customize verse text color
+- **Verse Number Color**: Customize verse number highlighting
+- **Heading Style**: none, simple, or detailed
+- **Code Block Language**: Customize language identifier (default: "bible")
+
+### Shortcuts
+- **Enable Shortcuts**: Turn keyboard shortcuts on/off
+- **Manage Shortcuts**: Add, edit, or remove quick access shortcuts
+
+### Dataview Integration
+- **Enable Dataview Metadata**: Create virtual notes for Dataview queries
+- **Metadata Fields**: Configure which fields to include in virtual notes
 
 ## Dataview Integration
 
@@ -114,6 +235,9 @@ chapter: 3
 verse: 16
 translation: ASV
 text: "For God so loved the world..."
+reference: "John 3:16"
+language: "en"
+category: "English"
 ---
 ```
 
@@ -148,31 +272,35 @@ FROM "Bible"
 WHERE book = "John" AND chapter = 3 AND verse = 16
 ```
 
-## Settings
-
-### Default Translation
-Choose your preferred Bible translation for the selector modal.
-
-### Output Type
-- **Full Verse Text**: Inserts complete verse with reference
-- **Literal Word Link**: Creates clickable link to Literal Word website
+#### Find Jesus' words
+```dataview
+LIST text
+FROM "Bible"
+WHERE contains(text, "I am") AND translation = "ASV"
+```
 
 ## Technical Details
 
 ### Data Storage
 BibleLink uses JSON-based storage for maximum compatibility with Obsidian's plugin system:
-- **Data Location**: `.biblelink/bible_data.json` in your vault
+- **Data Location**: `.obsidian/plugins/obsidian-biblelink/data/bible_data.json`
 - **Format**: Structured JSON with translations and verses
 - **Automatic Backup**: Data is automatically saved with your vault
 - **Sample Data**: See `data/sample_bible_data.json` for the expected data structure
 
 ### File Structure
 ```
-.obsidian/plugins/biblelink/
+.obsidian/plugins/obsidian-biblelink/
 ├── main.js                 # Plugin bundle
 ├── manifest.json           # Plugin metadata
-└── .biblelink/
-    └── bible_data.json     # Bible data storage
+├── data/
+│   ├── bible_data.json     # Bible data storage
+│   └── settings.json       # Plugin settings
+└── src/                    # Source code
+    ├── main.ts            # Main plugin class and command registration
+    ├── database.ts        # JSON database management and data operations
+    ├── selector.ts        # Bible reference selector modal with grid interface
+    └── settings.ts        # Settings tab and translation management
 ```
 
 ### Supported Bible Formats
@@ -201,6 +329,12 @@ Must follow structure:
 </XMLBIBLE>
 ```
 
+### Processing Rules
+Custom text formatting rules can be applied to translations:
+- **Regex Patterns**: Match specific text patterns
+- **Formatting**: Apply HTML formatting or text replacements
+- **Escape Options**: Handle special characters
+
 ## Development
 
 ### Building from Source
@@ -212,11 +346,18 @@ npm run build
 ### Project Structure
 ```
 src/
-├── main.ts         # Main plugin class
-├── database.ts     # JSON database management
-├── selector.ts     # Bible reference selector modal
+├── main.ts         # Main plugin class and command registration
+├── database.ts     # JSON database management and data operations
+├── selector.ts     # Bible reference selector modal with grid interface
 └── settings.ts     # Settings tab and translation management
 ```
+
+### Key Features Implementation
+- **Modal Grid Interface**: Modern grid-based book/chapter/verse selection
+- **Reference Parsing**: Complex reference parsing with validation
+- **Code Block Processing**: Custom markdown processor with styling options
+- **Shortcut System**: Keyboard shortcut registration and processing
+- **Dataview Integration**: Virtual note creation for query support
 
 ## Contributing
 
@@ -247,18 +388,4 @@ BibleLink uses the [scrollmapper/bible_databases](https://github.com/scrollmappe
 - **Multiple formats**: SQLite, CSV, JSON, XML
 - **Historical texts**: Ancient manuscripts and early translations
 - **Modern translations**: Contemporary Bible versions
-- **Original languages**: Hebrew, Greek, Aramaic texts
-
-The repository is maintained by the open-source community and provides a comprehensive collection of Bible texts for study and research.
-
-## Development Philosophy
-
-This plugin was developed using the **"Vibe Coding"** approach - a development methodology that emphasizes:
-
-- **Positive Energy**: Writing code with good vibes and positive intentions
-- **Flow State**: Maintaining a smooth, enjoyable development experience
-- **User-Centric Design**: Focusing on creating delightful user experiences
-- **Simplicity**: Keeping things simple and intuitive
-- **Community**: Building with the community in mind
-
-The goal is to create software that not only works well but also brings joy to both developers and users. ✨ 
+- **Original languages**: Hebrew, Greek, Aramaic texts 
