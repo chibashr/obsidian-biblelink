@@ -80,7 +80,7 @@ export default class BibleLinkPlugin extends Plugin {
             this.processCodeBlock(source, el, ctx);
         });
 
-        // Register command
+        // Register command for normal reference
         this.addCommand({
             id: 'insert-bible-reference',
             name: 'Insert Bible Reference',
@@ -90,6 +90,7 @@ export default class BibleLinkPlugin extends Plugin {
                     this,
                     (reference: string, translation: string, outputType: 'text' | 'link' | 'codeblock', options: string[]) => {
                         this.insertBibleReference(editor, reference, translation, outputType, options);
+                        setTimeout(() => this.attachInlinePopoverHandlers(), 100); // Attach popover handlers after insertion
                     }
                 ).open();
             }
@@ -114,6 +115,9 @@ export default class BibleLinkPlugin extends Plugin {
 
         // Test settings persistence
         this.testSettingsPersistence();
+
+        // Attach popover handlers globally on load
+        this.attachInlinePopoverHandlers();
 
         console.log('BibleLink plugin loaded');
     }
@@ -312,6 +316,32 @@ export default class BibleLinkPlugin extends Plugin {
                 background: var(--interactive-accent);
                 color: var(--text-on-accent);
                 font-weight: bold;
+            }
+
+            /* Inline reference popover styles */
+            .biblelink-inline-ref {
+                color: var(--text-accent);
+                text-decoration: underline;
+                cursor: pointer;
+                position: relative;
+            }
+            .biblelink-inline-ref:hover {
+                text-decoration: none;
+            }
+            .biblelink-inline-popover {
+                position: fixed;
+                z-index: 9999;
+                background-color: #fff;
+                color: #222;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                padding: 8px 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                max-width: 350px;
+                font-size: 1em;
+                pointer-events: auto;
+                white-space: pre-wrap; /* Preserve line breaks */
+                word-break: break-word;
             }
         `;
         document.head.appendChild(style);
@@ -611,6 +641,103 @@ export default class BibleLinkPlugin extends Plugin {
         this.insertBibleReference(editor, reference, this.settings.defaultTranslation, this.settings.outputType, []);
     }
 
+    /**
+     * Attach popover handlers to all .biblelink-inline-ref elements in the document.
+     * This is needed because HTML insertion does not preserve JS event handlers.
+     */
+    private attachInlinePopoverHandlers() {
+        document.querySelectorAll('.biblelink-inline-ref').forEach((el) => {
+            if ((el as HTMLElement).getAttribute('data-biblelink-popover') === '1') return;
+            (el as HTMLElement).setAttribute('data-biblelink-popover', '1');
+            el.addEventListener('mouseenter', (e) => {
+                this.showInlineReferencePopover(el as HTMLElement);
+            });
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showInlineReferencePopover(el as HTMLElement, true);
+            });
+            el.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    document.querySelectorAll('.biblelink-inline-popover').forEach(el => el.remove());
+                }, 200);
+            });
+        });
+    }
+
+    /**
+     * Show a popover for a .biblelink-inline-ref element.
+     * If reference/translation are not provided, parse from the element text.
+     * If force (from click), keep the popover open until click outside.
+     */
+    private showInlineReferencePopover(target: HTMLElement, force = false) {
+        // Remove any existing popover
+        document.querySelectorAll('.biblelink-inline-popover').forEach(el => el.remove());
+
+        // Try to parse reference and translation from the element text
+        let text = target.textContent || '';
+        let refMatch = text.match(/^(.*?) \(([^)]+)\)$/);
+        if (!refMatch) return;
+        let reference = refMatch[1];
+        let translation = refMatch[2];
+
+        // Support multi-verse (e.g. John 3:16-18)
+        let match = reference.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+        if (!match) return;
+        const [, book, chapter, startVerse, endVerse] = match;
+        const chapterNum = parseInt(chapter);
+        const startVerseNum = startVerse ? parseInt(startVerse) : 1;
+        const endVerseNum = endVerse ? parseInt(endVerse) : startVerseNum;
+        let verses: string[] = [];
+        for (let v = startVerseNum; v <= endVerseNum; v++) {
+            const verseData = this.db.getVerse(book, chapterNum, v, translation);
+            if (verseData) {
+                verses.push(`<span style='color:#888;font-size:0.9em;'>${v}</span> ${verseData.text}`);
+            }
+        }
+        if (verses.length === 0) return;
+
+        // Create popover
+        const popover = document.createElement('div');
+        popover.className = 'biblelink-inline-popover';
+        popover.innerHTML = `<div style='font-weight:bold;margin-bottom:4px;'>${reference} (${translation})</div>${verses.join('<br/>')}`;
+        popover.style.position = 'absolute';
+        popover.style.zIndex = '9999';
+        popover.style.background = '#fff';
+        popover.style.color = '#222';
+        popover.style.border = '1px solid #ccc';
+        popover.style.borderRadius = '6px';
+        popover.style.padding = '8px 12px';
+        popover.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        popover.style.maxWidth = '350px';
+        popover.style.fontSize = '1em';
+        popover.style.pointerEvents = 'auto';
+        popover.style.whiteSpace = 'pre-wrap';
+        popover.style.wordBreak = 'break-word';
+
+        // Position popover below the target
+        const rect = target.getBoundingClientRect();
+        popover.style.left = `${rect.left + window.scrollX}px`;
+        popover.style.top = `${rect.bottom + window.scrollY + 4}px`;
+
+        document.body.appendChild(popover);
+
+        // Remove on mouseleave or click outside (unless force/clicked)
+        const removePopover = (e?: Event) => {
+            if (popover.parentNode) popover.parentNode.removeChild(popover);
+            document.removeEventListener('mousedown', onDocClick);
+        };
+        const onDocClick = (e: MouseEvent) => {
+            if (!popover.contains(e.target as Node) && e.target !== target) {
+                removePopover();
+            }
+        };
+        if (!force) {
+            popover.addEventListener('mouseleave', removePopover);
+        }
+        document.addEventListener('mousedown', onDocClick);
+    }
+
     private insertBibleReference(
         editor: Editor,
         reference: string,
@@ -675,12 +802,55 @@ export default class BibleLinkPlugin extends Plugin {
 
         let text: string;
         if (outputType === 'text') {
-            const verseTexts = verses.map(v => {
-                return verses.length > 1 ? `${v.verse} ${v.text}` : v.text;
+            // Insert as inline reference span
+            const refText = `${reference} (${translation})`;
+            const span = document.createElement('span');
+            span.className = 'biblelink-inline-ref';
+            span.textContent = refText;
+            span.style.cursor = 'pointer';
+            span.title = 'Click or hover to show verse';
+            span.addEventListener('mouseenter', () => this.showInlineReferencePopover(span, false));
+            span.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    document.querySelectorAll('.biblelink-inline-popover').forEach(el => el.remove());
+                }, 200);
             });
-            text = `${reference} (${translation}): ${verseTexts.join(' ')}`;
+            span.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showInlineReferencePopover(span, false);
+            });
+            // Insert as HTML if possible, else fallback to plain text
+            if ((editor as any).replaceSelectionHTML) {
+                (editor as any).replaceSelectionHTML(span.outerHTML);
+            } else {
+                editor.replaceSelection(refText);
+            }
         } else if (outputType === 'link') {
-            text = `[${reference} (${translation})](${this.generateBibleGatewayUrl(reference, translation)})`;
+            // Insert as inline reference link with popover
+            const refText = `${reference} (${translation})`;
+            const url = this.generateBibleGatewayUrl(reference, translation);
+            const a = document.createElement('a');
+            a.className = 'biblelink-inline-ref';
+            a.textContent = refText;
+            a.href = url;
+            a.target = '_blank';
+            a.style.cursor = 'pointer';
+            a.title = 'Click or hover to show verse';
+            a.addEventListener('mouseenter', () => this.showInlineReferencePopover(a, false));
+            a.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    document.querySelectorAll('.biblelink-inline-popover').forEach(el => el.remove());
+                }, 200);
+            });
+            a.addEventListener('click', (e) => {
+                // Allow normal link open, but also show popover
+                this.showInlineReferencePopover(a, false);
+            });
+            if ((editor as any).replaceSelectionHTML) {
+                (editor as any).replaceSelectionHTML(a.outerHTML);
+            } else {
+                editor.replaceSelection(`[${refText}](${url})`);
+            }
         } else {
             // Code block output
             const optionsStr = options.length > 0 ? ` [${options.join('|')}]` : '';

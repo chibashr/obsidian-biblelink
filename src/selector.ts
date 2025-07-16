@@ -257,7 +257,7 @@ export class BibleSelectorModal extends Modal {
                 this.renderChapterGrid(document.querySelector('.biblelink-chapter-grid-container'));
                 this.renderVerseGrid(document.querySelector('.biblelink-verse-grid-container'));
                 this.updateReferenceInputFromSelection();
-                this.updatePreview();
+                // this.updatePreview(); // Removed because updatePreview does not exist
             };
         });
     }
