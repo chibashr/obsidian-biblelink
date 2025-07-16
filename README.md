@@ -16,9 +16,11 @@ A powerful Obsidian plugin that integrates Bible verse data and provides seamles
 ### From GitHub Release
 
 1. Go to the [Releases](https://github.com/YOUR_GITHUB_USERNAME/obsidian-biblelink/releases) page.
-2. Download the latest `obsidian-biblelink.zip`.
-3. Unzip the file. Copy the contents (`main.js` and `manifest.json`) into a folder named `obsidian-biblelink` inside your vault’s `.obsidian/plugins/` directory.
+2. Download the latest `obsidian-biblelink.zip` from the **Assets** section (do **not** use the "Source code" ZIP).
+3. Unzip the file. Copy `main.js` and `manifest.json` into a folder named `obsidian-biblelink` inside your vault’s `.obsidian/plugins/` directory.
 4. Reload Obsidian and enable the plugin in Settings → Community Plugins.
+
+> **Note:** Only use the `obsidian-biblelink.zip` file from the Assets section. Do **not** use the automatically generated "Source code" ZIP or TAR files, as they contain the entire repository and are not suitable for plugin installation.
 
 ### From Obsidian (when available)
 - Go to Settings → Community plugins
@@ -240,19 +242,21 @@ To create a new release for Obsidian:
    ```
    This generates `main.js` in the project root.
 
-2. **Prepare the release ZIP**
-   - Create a new folder (e.g., `obsidian-biblelink-release/`).
-   - Copy only these files into it:
-     - `main.js`
-     - `manifest.json`
-   - Zip the contents (not the folder itself) into `obsidian-biblelink.zip`.
+2. **Push your changes and tag a new release**
+   ```bash
+   git add main.js manifest.json .github/workflows/release.yml
+   git commit -m "Release vX.Y.Z"
+   git tag vX.Y.Z
+   git push origin master --tags
+   ```
 
-3. **Create a GitHub Release**
-   - Go to the repository’s Releases page.
-   - Click “Draft a new release.”
-   - Tag the release (e.g., `v1.0.0`).
-   - Add release notes summarizing changes.
-   - Upload `obsidian-biblelink.zip` as a release asset.
-   - Publish the release.
+3. **The GitHub Actions workflow will automatically create a ZIP**
+   - The workflow will upload `obsidian-biblelink.zip` containing only `main.js` and `manifest.json` as the release asset.
+   - No manual ZIP creation is needed.
 
 **Note:** Do not include source files, node_modules, or development artifacts in the release ZIP. Only `main.js` and `manifest.json` are required for users. 
+
+## Changelog
+
+### v1.2.0
+- Initial release of BibleLink plugin for Obsidian with ASV translation, DataviewJS integration, and advanced search features. 

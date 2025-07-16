@@ -306,3 +306,17 @@ This plugin follows the **"Vibe Coding"** approach:
 ---
 
 *Happy coding! May your development be bug-free and your builds successful.* ✨ 
+
+## Release Build and Packaging Process
+
+1. Ensure the version in manifest.json is updated and matches the intended release tag.
+2. Run your build command to generate main.js (e.g., using esbuild or your chosen bundler).
+3. Create a .zip file named obsidian-biblelink.zip containing only main.js and manifest.json (and styles.css if present).
+   - On Windows, you can use:
+     - Select main.js and manifest.json
+     - Right-click > Send to > Compressed (zipped) folder
+     - Rename the zip to obsidian-biblelink.zip
+   - Or use PowerShell:
+     - Compress-Archive -Path main.js,manifest.json -DestinationPath obsidian-biblelink.zip -Force
+4. Attach the .zip file to your GitHub release.
+5. Add release notes/changelog and publish the release. 
