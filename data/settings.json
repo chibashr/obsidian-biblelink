@@ -21,7 +21,7 @@
   "codeBlockTextColor": "#cbdbda",
   "codeBlockVerseNumberColor": "#7f8c8d",
   "codeBlockLanguage": "bible",
-  "modalOutputType": "text",
+  "modalOutputType": "codeblock",
   "modalOptions": [
     "verse"
   ]

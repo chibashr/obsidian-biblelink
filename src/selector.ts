@@ -548,14 +548,15 @@ export class BibleSelectorModal extends Modal {
     }
 
     private updateOptionsSection(container?: HTMLElement) {
-        if (this.selectedOutputType !== 'codeblock') return;
+        // Remove the check for codeblock output type so options are always shown
+        // if (this.selectedOutputType !== 'codeblock') return;
 
         const target = container || document.querySelector('.options-container');
         if (!target) return;
         target.empty();
         target.addClass('options-container');
 
-        target.createEl('h3', { text: 'Code Block Options' });
+        target.createEl('h3', { text: 'Options' });
 
         // Verse numbers
         new Setting(target)
