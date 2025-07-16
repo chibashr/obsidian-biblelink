@@ -23,7 +23,7 @@ jobs:
         run: npm ci
         
       - name: Build
-        run: npm run build
+        run: npm run build:production
         
       - name: Create plugin ZIP
         run: |
