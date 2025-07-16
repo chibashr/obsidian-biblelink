@@ -1,402 +1,223 @@
 # BibleLink Features
 
-This document provides a comprehensive overview of all BibleLink features with detailed examples and usage instructions.
+BibleLink is a comprehensive Obsidian plugin that provides powerful Bible study capabilities through DataviewJS integration and advanced search functionality.
 
 ## Core Features
 
-### 1. Bible Reference Insertion
-
-Insert Bible references in three different formats:
-
-#### Text Output
-```
-John 3:16 (ASV): For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.
-```
-
-#### Link Output
-```
-[John 3:16](https://literalword.com/?q=John+3%3A16)
-```
-
-#### Code Block Output
-````markdown
-```bible[red-letter,detailed]
-John 3:16 ASV
-For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.
-```
-````
-
-### 2. Advanced Code Block Features
-
-#### Syntax Options
-Use options in square brackets to customize the output:
-
-```markdown
-```bible[option1,option2]
-reference
-```
-```
-
-#### Available Options
-- `red-letter` - Highlights Jesus' words in red
-- `simple` - Simple heading style (John 3:16)
-- `detailed` - Detailed heading style (John 3:16 ASV)
-- `none` - No heading
-- `verse-numbers` - Shows verse numbers
-- `no-verse-numbers` - Hides verse numbers
-
-#### Code Block Examples
-
-**Basic Code Block**
-````markdown
-```bible
-John 3:16
-For God so loved the world...
-```
-````
-
-**Red Letter Text**
-````markdown
-```bible[red-letter]
-John 14:6
-I am the way, and the truth, and the life...
-```
-````
-
-**Custom Styling**
-````markdown
-```bible[detailed,verse-numbers]
-John 3:16-17 ASV
-For God so loved the world...
-```
-````
-
-**No Heading**
-````markdown
-```bible[none]
-John 3:16
-For God so loved the world...
-```
-````
-
-### 3. Complex Reference Parsing
-
-Support for various reference formats:
-
-#### Single Verse
-```
-John 3:16
-```
-
-#### Verse Range
-```
-John 1:13-25
-```
-
-#### Chapter Reference
-```
-Genesis 1
-```
-
-#### Cross-Chapter Range
-```
-Genesis 1:1-2:3
-```
-
-#### Multiple Verses
-```
-John 3:16, 17, 18
-```
-
-### 4. Keyboard Shortcuts
-
-#### Default Shortcuts
-- `jn316` → John 3:16
-- `gen11` → Genesis 1:1
-- `ps231` → Psalm 23:1
-- `rom828` → Romans 8:28
-- `jn11` → John 1:1
-
-#### Custom Shortcuts
-Configure your own shortcuts in settings:
-- Shortcut: `jn1414`
-- Reference: `John 14:14`
-
-#### Using Shortcuts
-1. Type the shortcut in any note
-2. Press `Ctrl+Enter` (or `Cmd+Enter` on Mac)
-3. The reference is automatically inserted
-
-### 5. Translation Management
-
-#### Available Translations (140+)
-
-**Popular English Translations**
-- ASV - American Standard Version (1901)
-- KJV - King James Version
-- WEB - World English Bible
-- YLT - Young's Literal Translation (1898)
-- BBE - Bible in Basic English (1949/1964)
-- BSB - Berean Standard Bible
-- CPDV - Catholic Public Domain Version
-
-**Historical Translations**
-- Tyndale - William Tyndale Bible (1525/1530)
-- Wycliffe - John Wycliffe Bible (c.1395)
-- Webster - Webster Bible
-- Vulgate - Latin Vulgate
-
-**Original Languages**
-- Byz - Byzantine Textform (Greek)
-- TR - Textus Receptus (Greek)
-- WLC - Westminster Leningrad Codex (Hebrew)
-
-**International Translations**
-- SpaRV - Spanish Reina-Valera (1909)
-- UkrOgienko - Ukrainian Bible (Ogienko)
-- Viet - Vietnamese Bible (1934)
-- ThaiKJV - Thai King James Version
-- And 120+ more translations in 40+ languages
-
-#### Adding Translations
-
-**One-Click Downloads**
-1. Go to Plugin Settings → BibleLink → Translations
-2. Browse "Popular Translations" or "All Available Translations"
-3. Click any translation abbreviation to download instantly
-
-**Upload Custom Files**
-- **SQLite**: Upload custom Bible databases
-- **XML**: Import XML Bible files (e.g., Bible_English_NASB_Strong.xml)
-
-**Edit Translation Metadata**
-- Modify name, abbreviation, language, category
-- Add custom processing rules for text formatting
-
-### 6. Dataview Integration
-
-#### Virtual Notes
-BibleLink creates virtual notes for referenced verses with metadata:
-
-```yaml
----
-book: John
-chapter: 3
-verse: 16
-translation: ASV
-text: "For God so loved the world..."
-reference: "John 3:16"
-language: "en"
-category: "English"
----
-```
-
-#### Example Dataview Queries
-
-**List verses from John**
-```dataview
-TABLE verse, text
-FROM "Bible/John"
-WHERE translation = "ASV"
-SORT chapter, verse
-```
-
-**Find verses containing "love"**
-```dataview
-LIST text
-FROM "Bible"
-WHERE contains(text, "love") AND translation = "ASV"
-```
-
-**Show verses from specific chapter**
-```dataview
-TABLE book, verse, text
-FROM "Bible"
-WHERE book = "John" AND chapter = 3
-```
-
-**Compare translations**
-```dataview
-TABLE translation, text
-FROM "Bible"
-WHERE book = "John" AND chapter = 3 AND verse = 16
-```
-
-**Find Jesus' words**
-```dataview
-LIST text
-FROM "Bible"
-WHERE contains(text, "I am") AND translation = "ASV"
-```
-
-**Search by book and verse range**
-```dataview
-TABLE verse, text
-FROM "Bible"
-WHERE book = "John" AND chapter = 3 AND verse >= 16 AND verse <= 18
-```
-
-### 7. Settings Configuration
-
-#### Basic Settings
-- **Default Translation**: Choose your preferred Bible translation
-- **Default Output Type**: text, link, or codeblock
-- **Show Translation Abbreviation**: Include translation abbreviation in output
-- **Show Book Abbreviations**: Use abbreviated book names (e.g., Jn instead of John)
-
-#### Code Block Styling
-- **Background Color**: Customize code block background
-- **Text Color**: Customize verse text color
-- **Verse Number Color**: Customize verse number highlighting
-- **Heading Style**: none, simple, or detailed
-- **Code Block Language**: Customize language identifier (default: "bible")
-
-#### Shortcuts
-- **Enable Shortcuts**: Turn keyboard shortcuts on/off
-- **Manage Shortcuts**: Add, edit, or remove quick access shortcuts
-
-#### Dataview Integration
-- **Enable Dataview Metadata**: Create virtual notes for Dataview queries
-- **Metadata Fields**: Configure which fields to include in virtual notes
-
-### 8. Modal Interface
-
-#### Grid-Based Selection
-- **Book Grid**: Visual grid of all Bible books
-- **Chapter Grid**: Dynamic chapter selection based on selected book
-- **Verse Grid**: Verse selection with multi-select support
-
-#### Reference Input
-- **Direct Input**: Type references directly (e.g., "John 1:13-25")
-- **Real-time Validation**: Instant feedback on reference format
-- **Auto-completion**: Suggestions based on available data
-
-#### Modal Persistence
-- **Remembers Settings**: Last used translation, output type, and options
-- **Quick Access**: Fast access to frequently used configurations
-
-### 9. Data Management
-
-#### Local Storage
-- **JSON Format**: Efficient local storage in JSON format
-- **Automatic Backup**: Data saved with your vault
-- **Offline Access**: All translations available offline
-
-#### Import Support
-- **SQLite Databases**: Import from scrollmapper format
-- **XML Files**: Import from various XML Bible formats
-- **Custom Schemas**: Support for custom database structures
-
-#### Processing Rules
-- **Regex Patterns**: Match specific text patterns
-- **Formatting**: Apply HTML formatting or text replacements
-- **Escape Options**: Handle special characters
-
-### 10. Technical Features
-
-#### Error Handling
-- **Graceful Degradation**: Plugin continues working even with data issues
-- **User-Friendly Messages**: Clear error messages for users
-- **Comprehensive Logging**: Detailed logging for debugging
-
-#### Performance
-- **Efficient Data Structures**: Optimized for fast lookups
-- **Lazy Loading**: Load data only when needed
-- **Memory Management**: Proper cleanup and resource management
-
-#### Compatibility
-- **Obsidian 0.15.0+**: Compatible with current Obsidian versions
-- **Dataview Plugin**: Optional integration with Dataview
-- **Cross-Platform**: Works on Windows, macOS, and Linux
-
-## Usage Examples
-
-### Study Notes
-```markdown
-# Bible Study: John 3
-
-## Key Verses
-
-```bible[red-letter,detailed]
-John 3:16 ASV
-For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.
-```
-
-## Cross-References
-
-```bible[simple]
-Romans 8:28
-And we know that to them that love God all things work together for good, even to them that are called according to his purpose.
-```
-
-## Jesus' Words
-
-```bible[red-letter,none]
-John 14:6
-I am the way, and the truth, and the life: no one cometh unto the Father, but by me.
+### 📖 Bible Data Integration
+- **Local Bible Database**: Store complete Bible translations locally in JSON format
+- **Multiple Translations**: Support for various Bible translations (ASV included by default)
+- **Offline Access**: All Bible data stored locally for offline use
+- **Fast Performance**: Optimized data storage and retrieval
+
+### 🔍 Advanced Search
+- **Text Search**: Search for specific words or phrases within verse content
+- **Reference Search**: Find verses by book, chapter, and verse numbers
+- **Translation Filtering**: Search within specific Bible translations
+- **Combined Queries**: Use multiple search criteria simultaneously
+
+### 📊 DataviewJS Integration
+- **Direct API Access**: Query Bible data directly in your notes using DataviewJS
+- **Rich Metadata**: Access comprehensive verse information including book, chapter, verse, text, and translation
+- **Flexible Queries**: Create complex searches with JavaScript
+- **Real-time Results**: Get instant results without creating additional files
+
+### 🌐 Translation Management
+- **Multiple Formats**: Support for JSON, SQLite, and XML Bible data formats
+- **Easy Import**: Simple import process for additional translations
+- **Metadata Editing**: Customize translation names, abbreviations, and categories
+- **Data Validation**: Automatic validation of imported Bible data
+
+## DataviewJS Capabilities
+
+### Available API Methods
+
+#### `BibleLinkAPI.searchVerses(options)`
+Search for Bible verses with various criteria:
+- `text`: Search text within verse content
+- `translation`: Bible translation (e.g., "ASV", "NASB")
+- `book`: Specific book name
+- `chapter`: Specific chapter number
+- `verse`: Specific verse number
+- `limit`: Maximum number of results
+
+#### `BibleLinkAPI.getVerse(book, chapter, verse, translation)`
+Get a specific verse by reference.
+
+#### `BibleLinkAPI.getAvailableTranslations()`
+Get list of available Bible translations.
+
+### Query Examples
+
+#### Basic Search
+```javascript
+```dataviewjs
+if (typeof BibleLinkAPI !== 'undefined') {
+    const verses = BibleLinkAPI.searchVerses({
+        text: "I am",
+        translation: "ASV"
+    });
+    
+    dv.table(["Book", "Chapter", "Verse", "Text"], 
+        verses.map(v => [v.book, v.chapter, v.verse, v.text])
+    );
+}
 ```
 ```
 
-### Sermon Notes
-```markdown
-# Sermon: God's Love
-
-## Main Text
-```bible[detailed,verse-numbers]
-John 3:16-17 ASV
-For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life. For God sent not the Son into the world to judge the world; but that the world should be saved through him.
-```
-
-## Supporting Verses
-- [Romans 5:8](https://literalword.com/?q=Romans+5%3A8)
-- [1 John 4:9](https://literalword.com/?q=1+John+4%3A9)
-```
-
-### Dataview Queries
-```markdown
-## All Verses About Love
-
-```dataview
-LIST text
-FROM "Bible"
-WHERE contains(text, "love") AND translation = "ASV"
-SORT book, chapter, verse
-```
-
-## Jesus' "I Am" Statements
-
-```dataview
-TABLE book, chapter, verse, text
-FROM "Bible"
-WHERE contains(text, "I am") AND translation = "ASV"
-SORT book, chapter, verse
+#### Advanced Filtering
+```javascript
+```dataviewjs
+if (typeof BibleLinkAPI !== 'undefined') {
+    const verses = BibleLinkAPI.searchVerses({
+        book: "John",
+        chapter: 3,
+        translation: "ASV",
+        limit: 20
+    });
+    
+    dv.table(["Verse", "Text"], 
+        verses.map(v => [v.verse, v.text])
+    );
+}
 ```
 ```
+
+#### Word Frequency Analysis
+```javascript
+```dataviewjs
+if (typeof BibleLinkAPI !== 'undefined') {
+    const searchWord = "grace";
+    const verses = BibleLinkAPI.searchVerses({
+        text: searchWord,
+        translation: "ASV"
+    });
+    
+    const bookCounts = {};
+    verses.forEach(v => {
+        bookCounts[v.book] = (bookCounts[v.book] || 0) + 1;
+    });
+    
+    const sortedBooks = Object.entries(bookCounts)
+        .sort(([,a], [,b]) => b - a);
+    
+    dv.header(3, `"${searchWord}" occurrences by book`);
+    dv.table(["Book", "Occurrences"], sortedBooks);
+}
+```
+```
+
+## Technical Features
+
+### Data Storage
+- **JSON Format**: Efficient JSON-based storage for maximum compatibility
+- **Automatic Backup**: Data automatically saved with your vault
+- **Sample Data**: Included sample data for testing and development
+- **Data Validation**: Automatic validation of Bible data structure
+
+### Performance Optimization
+- **Caching**: Intelligent caching for frequently accessed data
+- **Search Limits**: Configurable limits to prevent performance issues
+- **Efficient Queries**: Optimized search algorithms for fast results
+- **Memory Management**: Efficient memory usage for large datasets
+
+### Plugin Integration
+- **Obsidian API**: Full integration with Obsidian's plugin system
+- **Settings Interface**: Comprehensive settings tab for configuration
+- **Error Handling**: Robust error handling and user feedback
+- **Global API**: Exposes API globally for DataviewJS access
+
+## User Experience Features
+
+### Easy Setup
+- **Automatic Installation**: Simple installation process
+- **Default Data**: Pre-loaded with ASV translation
+- **Quick Start**: Immediate access to basic functionality
+- **Documentation**: Comprehensive documentation and examples
+
+### Configuration Options
+- **Search Preferences**: Configure default search behavior
+- **Performance Settings**: Adjust caching and search limits
+- **Translation Management**: Easy import and management of translations
+- **API Access**: Multiple ways to access plugin functionality
+
+### Error Handling
+- **User-Friendly Messages**: Clear error messages and troubleshooting guidance
+- **Graceful Degradation**: Plugin continues to work even with partial data
+- **Validation**: Automatic validation of user inputs and data
+- **Recovery**: Automatic recovery from common error conditions
 
 ## Advanced Features
 
-### Custom Processing Rules
-Add custom text formatting rules for translations:
+### Cross-Reference Search
+- **Similar Verses**: Find verses with similar content
+- **Reference Parsing**: Parse complex Bible references
+- **Context Awareness**: Provide context for search results
 
-```json
-{
-  "regex": "\\bGod\\b",
-  "formatting": "<strong>God</strong>",
-  "escape": false
-}
-```
+### Data Analysis
+- **Word Frequency**: Analyze word usage across books and translations
+- **Statistical Information**: Provide statistics about search results
+- **Trend Analysis**: Identify patterns in Bible text
 
-### Reference Validation
-The plugin validates references before insertion:
-- Checks if book exists
-- Validates chapter and verse numbers
-- Ensures translation is available
-- Provides helpful error messages
+### Export and Integration
+- **Data Export**: Export search results in various formats
+- **External Integration**: Integration with other Obsidian plugins
+- **Custom Scripts**: Support for custom JavaScript queries
 
-### Modal Customization
-- Persistent settings across sessions
-- Customizable grid layouts
-- Responsive design for different screen sizes
-- Keyboard navigation support
+## Security and Privacy
 
-This comprehensive feature set makes BibleLink a powerful tool for Bible study within Obsidian, providing both simplicity for beginners and advanced features for power users. 
+### Data Privacy
+- **Local Storage**: All data stored locally on your device
+- **No External Calls**: No data sent to external servers
+- **User Control**: Complete control over your Bible data
+- **Secure Access**: Secure API access through Obsidian's plugin system
+
+### Data Integrity
+- **Validation**: Automatic validation of imported data
+- **Backup**: Automatic backup of plugin data
+- **Recovery**: Data recovery options in case of corruption
+- **Version Control**: Support for version control of Bible data
+
+## Future Features
+
+### Planned Enhancements
+- **Advanced Search**: More sophisticated search algorithms
+- **Translation Comparison**: Side-by-side translation comparison
+- **Study Tools**: Additional Bible study features
+- **Mobile Support**: Enhanced mobile experience
+- **Community Features**: Sharing and collaboration tools
+
+### Extensibility
+- **Plugin API**: Public API for other plugins to integrate
+- **Custom Formats**: Support for additional Bible data formats
+- **Themes**: Customizable themes and styling
+- **Workflows**: Integration with Obsidian workflows
+
+## System Requirements
+
+### Obsidian Version
+- **Minimum**: Obsidian 0.15.0 or higher
+- **Recommended**: Latest stable version
+
+### Dependencies
+- **Dataview Plugin**: Required for DataviewJS functionality
+- **No External Dependencies**: All other functionality self-contained
+
+### Performance
+- **Memory**: Minimal memory footprint
+- **Storage**: Efficient storage of Bible data
+- **Speed**: Fast search and retrieval performance
+
+## Support and Documentation
+
+### Documentation
+- **Comprehensive Guides**: Detailed documentation for all features
+- **Examples**: Extensive collection of example queries
+- **Tutorials**: Step-by-step tutorials for common use cases
+- **API Reference**: Complete API documentation
+
+### Community Support
+- **GitHub Issues**: Bug reports and feature requests
+- **Documentation**: Self-service documentation and guides
+- **Examples**: Community-contributed examples and use cases
+- **Best Practices**: Recommended practices and workflows 

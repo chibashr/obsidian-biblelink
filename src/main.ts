@@ -46,6 +46,22 @@ export default class BibleLinkPlugin extends Plugin {
             await this.db.initialize();
         }
 
+        // Expose plugin instance globally for DataviewJS access
+        (window as any).BibleLinkPlugin = this;
+        
+        // Also expose a convenient API object
+        (window as any).BibleLinkAPI = {
+            getAllVerses: () => this.getAllVersesWithMetadata(),
+            queryVerses: (book?: string, chapter?: number, translation?: string) => this.queryVerses(book, chapter, translation),
+            getTranslations: () => this.db.getTranslations(),
+            getBooks: () => this.db.getBooks(),
+            getChaptersForBook: (book: string, translation: string) => this.db.getChaptersForBook(book, translation),
+            getVersesForChapter: (book: string, chapter: number, translation: string) => this.db.getVersesForChapter(book, chapter, translation),
+            getVerse: (book: string, chapter: number, verse: number, translation: string) => this.db.getVerse(book, chapter, verse, translation),
+            // Expose the plugin instance for direct access
+            plugin: this
+        };
+
         // Parse reference (supports "Book Chapter:Verse", "Book Chapter:Verse-Verse", "Book Chapter", and "Book Chapter:Verse-Book Chapter:Verse")
         const parseReference = (ref: string): { book: string; chapter: number; verse?: number; } | null => {
             const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
@@ -126,6 +142,15 @@ export default class BibleLinkPlugin extends Plugin {
         if (this.db) {
             await this.db.close();
         }
+        
+        // Clean up global API
+        if ((window as any).BibleLinkAPI) {
+            delete (window as any).BibleLinkAPI;
+        }
+        if ((window as any).BibleLinkPlugin) {
+            delete (window as any).BibleLinkPlugin;
+        }
+        
         console.log('BibleLink plugin unloaded');
     }
 
@@ -799,110 +824,331 @@ LIMIT 5
         // Check if Dataview plugin is available
         const dataviewPlugin = this.app.plugins.plugins['dataview'];
         if (!dataviewPlugin) {
+            console.log('[BibleLink] Dataview plugin not found, skipping Dataview integration');
             return;
         }
 
         try {
-            // Register Bible source with Dataview
-            const dataviewAPI = dataviewPlugin.api;
-            if (dataviewAPI && dataviewAPI.registerSource) {
-                dataviewAPI.registerSource('bible', {
-                    // Provide access to Bible data for Dataview queries
-                    query: (query: string) => {
-                        return this.handleDataviewQuery(query);
-                    }
-                });
-            }
+            // Dataview doesn't support custom sources in DQL, so we'll focus on DataviewJS
+            // The plugin instance is exposed globally for DataviewJS access
+            console.log('[BibleLink] Dataview plugin found, exposing API for DataviewJS access');
+            console.log('[BibleLink] Use BibleLinkAPI or BibleLinkPlugin in DataviewJS queries');
         } catch (error) {
-            console.error('Failed to register Dataview source:', error);
+            console.error('[BibleLink] Failed to initialize Dataview integration:', error);
         }
     }
 
     private handleDataviewQuery(query: string): any[] {
         try {
-            // Parse simple Dataview-style queries
-            // This is a basic implementation - a full implementation would need more sophisticated parsing
+            console.log('[BibleLink] Processing Dataview query:', query);
             
-            // Example: WHERE book = "John" AND translation = "ASV"
-            const whereMatch = query.match(/WHERE\s+(.+)/i);
-            if (!whereMatch) return [];
-
-            const conditions = whereMatch[1];
-            let results: any[] = [];
-
-            // Parse book condition
-            const bookMatch = conditions.match(/book\s*=\s*"([^"]+)"/i);
-            const translationMatch = conditions.match(/translation\s*=\s*"([^"]+)"/i);
-            const chapterMatch = conditions.match(/chapter\s*=\s*(\d+)/i);
-            const textMatch = conditions.match(/contains\(text,\s*"([^"]+)"\)/i);
-
-            // Get all verses and filter in memory
-            const allVerses = this.db.getTranslations().flatMap(translation => {
-                return this.db.getBooks().flatMap(book => {
-                    const chapters = this.db.getChaptersForBook(book, translation.abbreviation);
-                    return chapters.flatMap(chapter => {
-                        const verses = this.db.getVersesForChapter(book, chapter, translation.abbreviation);
-                        return verses.map(verse => {
-                            const verseData = this.db.getVerse(book, chapter, verse, translation.abbreviation);
-                            return {
-                                book: verseData?.book || book,
-                                chapter: verseData?.chapter || chapter,
-                                verse: verseData?.verse || verse,
-                                text: verseData?.text || '',
-                                translation: translation.abbreviation
-                            };
-                        });
-                    });
-                });
-            });
-
-            // Apply filters
-            results = allVerses.filter(verse => {
-                if (bookMatch && verse.book !== bookMatch[1]) return false;
-                if (translationMatch && verse.translation !== translationMatch[1]) return false;
-                if (chapterMatch && verse.chapter !== parseInt(chapterMatch[1])) return false;
-                if (textMatch && !verse.text.includes(textMatch[1])) return false;
-                return true;
-            });
-
-            return results.slice(0, 100); // Limit results
+            // Parse the query to extract components
+            const parsedQuery = this.parseDataviewQuery(query);
+            console.log('[BibleLink] Parsed query:', parsedQuery);
+            
+            // Get all verses that match the criteria
+            let results = this.getAllVersesWithMetadata();
+            
+            // Apply WHERE conditions
+            if (parsedQuery.where) {
+                results = this.applyWhereConditions(results, parsedQuery.where);
+            }
+            
+            // Apply SORT
+            if (parsedQuery.sort) {
+                results = this.applySort(results, parsedQuery.sort);
+            }
+            
+            // Apply LIMIT
+            if (parsedQuery.limit) {
+                results = results.slice(0, parsedQuery.limit);
+            }
+            
+            console.log(`[BibleLink] Query returned ${results.length} results`);
+            return results;
 
         } catch (error) {
-            console.error('Dataview query error:', error);
+            console.error('[BibleLink] Dataview query error:', error);
             return [];
         }
     }
 
-    // Utility method to get all verses for a specific query
-    public queryVerses(book?: string, chapter?: number, translation?: string): any[] {
+    private parseDataviewQuery(query: string): {
+        where?: any[];
+        sort?: { field: string; direction: 'asc' | 'desc' }[];
+        limit?: number;
+    } {
+        const result: any = {};
+        
+        // Parse WHERE clause
+        const whereMatch = query.match(/WHERE\s+(.+?)(?:\s+SORT|\s+LIMIT|$)/i);
+        if (whereMatch) {
+            result.where = this.parseWhereConditions(whereMatch[1]);
+        }
+        
+        // Parse SORT clause
+        const sortMatch = query.match(/SORT\s+(.+?)(?:\s+LIMIT|$)/i);
+        if (sortMatch) {
+            result.sort = this.parseSortConditions(sortMatch[1]);
+        }
+        
+        // Parse LIMIT clause
+        const limitMatch = query.match(/LIMIT\s+(\d+)/i);
+        if (limitMatch) {
+            result.limit = parseInt(limitMatch[1]);
+        }
+        
+        return result;
+    }
+
+    private parseWhereConditions(conditions: string): any[] {
+        const parsedConditions: any[] = [];
+        
+        // Split by AND/OR (simplified - assumes AND for now)
+        const andParts = conditions.split(/\s+AND\s+/i);
+        
+        for (const part of andParts) {
+            // Parse field = value
+            const eqMatch = part.match(/(\w+)\s*=\s*"([^"]+)"/i);
+            if (eqMatch) {
+                parsedConditions.push({
+                    type: 'equals',
+                    field: eqMatch[1].toLowerCase(),
+                    value: eqMatch[2]
+                });
+                continue;
+            }
+            
+            // Parse field = number
+            const numMatch = part.match(/(\w+)\s*=\s*(\d+)/i);
+            if (numMatch) {
+                parsedConditions.push({
+                    type: 'equals',
+                    field: numMatch[1].toLowerCase(),
+                    value: parseInt(numMatch[2])
+                });
+                continue;
+            }
+            
+            // Parse contains(field, "value")
+            const containsMatch = part.match(/contains\((\w+),\s*"([^"]+)"\)/i);
+            if (containsMatch) {
+                parsedConditions.push({
+                    type: 'contains',
+                    field: containsMatch[1].toLowerCase(),
+                    value: containsMatch[2]
+                });
+                continue;
+            }
+            
+            // Parse field > number
+            const gtMatch = part.match(/(\w+)\s*>\s*(\d+)/i);
+            if (gtMatch) {
+                parsedConditions.push({
+                    type: 'greater_than',
+                    field: gtMatch[1].toLowerCase(),
+                    value: parseInt(gtMatch[2])
+                });
+                continue;
+            }
+            
+            // Parse field < number
+            const ltMatch = part.match(/(\w+)\s*<\s*(\d+)/i);
+            if (ltMatch) {
+                parsedConditions.push({
+                    type: 'less_than',
+                    field: ltMatch[1].toLowerCase(),
+                    value: parseInt(ltMatch[2])
+                });
+                continue;
+            }
+        }
+        
+        return parsedConditions;
+    }
+
+    private parseSortConditions(sortClause: string): { field: string; direction: 'asc' | 'desc' }[] {
+        const sorts: { field: string; direction: 'asc' | 'desc' }[] = [];
+        
+        // Split by comma
+        const parts = sortClause.split(',').map(p => p.trim());
+        
+        for (const part of parts) {
+            // Check for DESC/ASC
+            const descMatch = part.match(/(\w+)\s+DESC/i);
+            if (descMatch) {
+                sorts.push({ field: descMatch[1].toLowerCase(), direction: 'desc' });
+                continue;
+            }
+            
+            const ascMatch = part.match(/(\w+)\s+ASC/i);
+            if (ascMatch) {
+                sorts.push({ field: ascMatch[1].toLowerCase(), direction: 'asc' });
+                continue;
+            }
+            
+            // Default to ASC
+            const fieldMatch = part.match(/(\w+)/i);
+            if (fieldMatch) {
+                sorts.push({ field: fieldMatch[1].toLowerCase(), direction: 'asc' });
+            }
+        }
+        
+        return sorts;
+    }
+
+    public getAllVersesWithMetadata(): any[] {
         const results: any[] = [];
         
-        const translations = translation ? 
-            this.db.getTranslations().filter(t => t.abbreviation === translation) :
-            this.db.getTranslations();
-            
-        const books = book ? [book] : this.db.getBooks();
-
-        for (const t of translations) {
-            for (const b of books) {
-                const chapters = chapter ? [chapter] : this.db.getChaptersForBook(b, t.abbreviation);
-                for (const c of chapters) {
-                    const verses = this.db.getVersesForChapter(b, c, t.abbreviation);
-                    for (const v of verses) {
-                        const verseData = this.db.getVerse(b, c, v, t.abbreviation);
+        for (const translation of this.db.getTranslations()) {
+            for (const book of this.db.getBooks()) {
+                const chapters = this.db.getChaptersForBook(book, translation.abbreviation);
+                for (const chapter of chapters) {
+                    const verses = this.db.getVersesForChapter(book, chapter, translation.abbreviation);
+                    for (const verseNum of verses) {
+                        const verseData = this.db.getVerse(book, chapter, verseNum, translation.abbreviation);
                         if (verseData) {
+                            const text = verseData.text;
+                            const wordCount = text.split(/\s+/).length;
+                            const charCount = text.length;
+                            
                             results.push({
                                 book: verseData.book,
                                 chapter: verseData.chapter,
                                 verse: verseData.verse,
-                                text: verseData.text,
-                                translation: t.abbreviation,
-                                translation_name: t.name
+                                text: text,
+                                translation: translation.abbreviation,
+                                translation_name: translation.name,
+                                reference: `${verseData.book} ${verseData.chapter}:${verseData.verse}`,
+                                word_count: wordCount,
+                                char_count: charCount,
+                                // Add computed fields for easier querying
+                                is_jesus_word: this.isJesusWord(text),
+                                has_red_letter: this.hasRedLetterWords(text),
+                                // Add book categories
+                                testament: this.getTestament(verseData.book),
+                                book_category: this.getBookCategory(verseData.book)
                             });
                         }
                     }
                 }
             }
+        }
+        
+        return results;
+    }
+
+    private applyWhereConditions(verses: any[], conditions: any[]): any[] {
+        return verses.filter(verse => {
+            return conditions.every(condition => {
+                const fieldValue = verse[condition.field];
+                
+                switch (condition.type) {
+                    case 'equals':
+                        return fieldValue === condition.value;
+                    case 'contains':
+                        return typeof fieldValue === 'string' && 
+                               fieldValue.toLowerCase().includes(condition.value.toLowerCase());
+                    case 'greater_than':
+                        return typeof fieldValue === 'number' && fieldValue > condition.value;
+                    case 'less_than':
+                        return typeof fieldValue === 'number' && fieldValue < condition.value;
+                    default:
+                        return true;
+                }
+            });
+        });
+    }
+
+    private applySort(verses: any[], sorts: { field: string; direction: 'asc' | 'desc' }[]): any[] {
+        return [...verses].sort((a, b) => {
+            for (const sort of sorts) {
+                const aVal = a[sort.field];
+                const bVal = b[sort.field];
+                
+                let comparison = 0;
+                if (typeof aVal === 'string' && typeof bVal === 'string') {
+                    comparison = aVal.localeCompare(bVal);
+                } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    comparison = aVal - bVal;
+                } else {
+                    comparison = String(aVal).localeCompare(String(bVal));
+                }
+                
+                if (comparison !== 0) {
+                    return sort.direction === 'desc' ? -comparison : comparison;
+                }
+            }
+            return 0;
+        });
+    }
+
+    private getTestament(book: string): string {
+        const oldTestamentBooks = [
+            'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+            'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+            '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles',
+            'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms',
+            'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah',
+            'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel',
+            'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah',
+            'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai',
+            'Zechariah', 'Malachi'
+        ];
+        
+        return oldTestamentBooks.includes(book) ? 'Old Testament' : 'New Testament';
+    }
+
+    private getBookCategory(book: string): string {
+        const categories: Record<string, string> = {
+            // Old Testament
+            'Genesis': 'Law', 'Exodus': 'Law', 'Leviticus': 'Law', 'Numbers': 'Law', 'Deuteronomy': 'Law',
+            'Joshua': 'Historical', 'Judges': 'Historical', 'Ruth': 'Historical', '1 Samuel': 'Historical', '2 Samuel': 'Historical',
+            '1 Kings': 'Historical', '2 Kings': 'Historical', '1 Chronicles': 'Historical', '2 Chronicles': 'Historical',
+            'Ezra': 'Historical', 'Nehemiah': 'Historical', 'Esther': 'Historical',
+            'Job': 'Wisdom', 'Psalms': 'Wisdom', 'Proverbs': 'Wisdom', 'Ecclesiastes': 'Wisdom', 'Song of Solomon': 'Wisdom',
+            'Isaiah': 'Prophetic', 'Jeremiah': 'Prophetic', 'Lamentations': 'Prophetic', 'Ezekiel': 'Prophetic', 'Daniel': 'Prophetic',
+            'Hosea': 'Prophetic', 'Joel': 'Prophetic', 'Amos': 'Prophetic', 'Obadiah': 'Prophetic', 'Jonah': 'Prophetic',
+            'Micah': 'Prophetic', 'Nahum': 'Prophetic', 'Habakkuk': 'Prophetic', 'Zephaniah': 'Prophetic', 'Haggai': 'Prophetic',
+            'Zechariah': 'Prophetic', 'Malachi': 'Prophetic',
+            // New Testament
+            'Matthew': 'Gospel', 'Mark': 'Gospel', 'Luke': 'Gospel', 'John': 'Gospel',
+            'Acts': 'Historical',
+            'Romans': 'Epistle', '1 Corinthians': 'Epistle', '2 Corinthians': 'Epistle', 'Galatians': 'Epistle', 'Ephesians': 'Epistle',
+            'Philippians': 'Epistle', 'Colossians': 'Epistle', '1 Thessalonians': 'Epistle', '2 Thessalonians': 'Epistle',
+            '1 Timothy': 'Epistle', '2 Timothy': 'Epistle', 'Titus': 'Epistle', 'Philemon': 'Epistle',
+            'Hebrews': 'Epistle', 'James': 'Epistle', '1 Peter': 'Epistle', '2 Peter': 'Epistle',
+            '1 John': 'Epistle', '2 John': 'Epistle', '3 John': 'Epistle', 'Jude': 'Epistle',
+            'Revelation': 'Apocalyptic'
+        };
+        
+        return categories[book] || 'Unknown';
+    }
+
+    private hasRedLetterWords(text: string): boolean {
+        // Check if text contains words that might be spoken by Jesus
+        const jesusIndicators = [
+            'I am', 'verily', 'truly', 'amen', 'father', 'kingdom', 'heaven',
+            'parable', 'disciple', 'follow me', 'come unto me', 'my father'
+        ];
+        
+        const lowerText = text.toLowerCase();
+        return jesusIndicators.some(indicator => lowerText.includes(indicator.toLowerCase()));
+    }
+
+    // Utility method to get all verses for a specific query
+    public queryVerses(book?: string, chapter?: number, translation?: string): any[] {
+        let results = this.getAllVersesWithMetadata();
+        
+        // Apply filters if provided
+        if (book) {
+            results = results.filter(v => v.book === book);
+        }
+        if (chapter) {
+            results = results.filter(v => v.chapter === chapter);
+        }
+        if (translation) {
+            results = results.filter(v => v.translation === translation);
         }
 
         return results.slice(0, 1000); // Limit results
