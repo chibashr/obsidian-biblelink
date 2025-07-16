@@ -260,3 +260,10 @@ To create a new release for Obsidian:
 
 ### v1.2.0
 - Initial release of BibleLink plugin for Obsidian with ASV translation, DataviewJS integration, and advanced search features. 
+
+## Recent Changes
+
+- The plugin **no longer creates folders or pages** when inserting a Bible verse; it only inserts the reference into your note.
+- **Inserting a range of verses** from the modal now inserts the full range, not just a single verse.
+- **Modal navigation and display** have been improved: book/chapter/verse buttons do not overflow, and long book names show tooltips.
+- **Manual reference entry** in the modal does not autofill the verse; you must finish typing the reference yourself. 

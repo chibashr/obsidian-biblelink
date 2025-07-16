@@ -117,6 +117,16 @@ export class BibleSelectorModal extends Modal {
                     this.insertReference();
                 }));
 
+        // Add Enter key support for submission
+        if (this.referenceInput && this.referenceInput.inputEl) {
+            this.referenceInput.inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.insertReference();
+                }
+            });
+        }
+
         // Inject modern CSS for the modal grids and buttons
         this.injectBibleGridStyles();
     }
@@ -157,6 +167,10 @@ export class BibleSelectorModal extends Modal {
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             transition: background 0.15s, color 0.15s, box-shadow 0.15s, border 0.15s;
             outline: none;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 100%;
         }
         .biblelink-book-btn:hover,
         .biblelink-chapter-btn:hover,
@@ -229,6 +243,7 @@ export class BibleSelectorModal extends Modal {
                 text: book,
                 cls: 'biblelink-book-btn'
             });
+            btn.setAttr('title', book);
             if (this.selectedBook === book) {
                 btn.addClass('selected');
             }
@@ -602,36 +617,20 @@ export class BibleSelectorModal extends Modal {
 
 
     private insertReference() {
-        if (!this.selectedBook) {
-            new Notice('Please select a book');
+        // Always use the current value of the reference input
+        const refValue = this.referenceInput?.getValue()?.trim();
+        if (!refValue) {
+            new Notice('Please enter a reference');
             return;
         }
-
-        // Use default translation if none is selected
+        // Use selected translation or default
         const translation = this.selectedTranslation || this.plugin.settings.defaultTranslation;
         if (!translation) {
             new Notice('Please select a translation');
             return;
         }
-
-        let reference = `${this.selectedBook} ${this.selectedStartChapter}`;
-        
-        if (this.selectedStartVerse !== 0) {
-            reference += `:${this.selectedStartVerse}`;
-            
-            if (this.selectedEndChapter && this.selectedEndChapter !== this.selectedStartChapter) {
-                // Cross-chapter reference
-                reference += `-${this.selectedBook} ${this.selectedEndChapter}:${this.selectedEndVerse}`;
-            } else if (this.selectedEndVerse && this.selectedEndVerse !== this.selectedStartVerse) {
-                // Same chapter reference
-                reference += `-${this.selectedEndVerse}`;
-            }
-        } else if (this.selectedEndChapter && this.selectedEndChapter !== this.selectedStartChapter) {
-            // Multiple chapters
-            reference += `-${this.selectedEndChapter}`;
-        }
-
-        this.onSubmit(reference, translation, this.selectedOutputType, this.selectedOptions);
+        // Use current output type and options
+        this.onSubmit(refValue, translation, this.selectedOutputType, this.selectedOptions);
         this.close();
     }
 
@@ -652,11 +651,9 @@ export class BibleSelectorModal extends Modal {
             return;
         }
         this.referenceWarning.style.display = 'none';
-        const [, book, chapter, startVerse, endVerse] = match;
+        const [, book, chapter] = match;
         const bookName = book.trim();
         const chapterNum = parseInt(chapter);
-        const startVerseNum = startVerse ? parseInt(startVerse) : 1;
-        const endVerseNum = endVerse ? parseInt(endVerse) : (startVerse ? startVerseNum : null);
         // Try to match book to dropdown
         const books = this.db.getBooks();
         const foundBook = books.find(b => b.toLowerCase() === bookName.toLowerCase());
@@ -665,31 +662,10 @@ export class BibleSelectorModal extends Modal {
             this.referenceWarning.textContent = 'Book not found.';
             return;
         }
-        
-        // Clear grid selections when using manual input
-        this.selectedChapters.clear();
-        this.selectedVerses.clear();
-        
+        // Only update selectedBook and selectedStartChapter, do not autofill verses
         this.selectedBook = foundBook;
         this.selectedStartChapter = chapterNum;
-        this.selectedEndChapter = chapterNum;
-        this.selectedStartVerse = startVerseNum;
-        this.selectedEndVerse = endVerseNum;
-        
-        // Ensure translation is set to default if not already selected
-        if (!this.selectedTranslation) {
-            this.selectedTranslation = this.plugin.settings.defaultTranslation;
-        }
-        
-        // Update translation dropdown to reflect the selected translation
-        if (this.translationDropdown) {
-            this.translationDropdown.setValue(this.selectedTranslation);
-        }
-        
-        // Update dropdowns
-        this.renderBookGrid(document.querySelector('.biblelink-book-grid-container'));
-        this.renderChapterGrid(document.querySelector('.biblelink-chapter-grid-container'));
-        this.renderVerseGrid(document.querySelector('.biblelink-verse-grid-container'));
-        this.updateReferenceInputFromSelection();
+        // Do not update selectedStartVerse or selectedEndVerse here
+        // Do not update dropdowns or grids
     }
 } 

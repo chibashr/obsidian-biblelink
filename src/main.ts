@@ -619,28 +619,53 @@ export default class BibleLinkPlugin extends Plugin {
         options: string[]
     ) {
         // Parse the reference
-        const match = reference.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
-        if (!match) {
+        // Support formats: Book Chapter:Verse, Book Chapter:Verse-Verse, Book Chapter:Verse,Verse,Verse
+        let multiVerseMatch = reference.match(/^(.+?)\s+(\d+):([\d,\-]+)$/); // Book Chapter:verse,verse,verse or range
+        let crossChapterMatch = reference.match(/^(.+?)\s+(\d+):(\d+)-(.+?)\s+(\d+):(\d+)$/); // Book Chapter:StartVerse-Book Chapter:EndVerse
+        let match = reference.match(/^(.+?)\s+(\d+)(?::(\d+))?$/); // Book Chapter or Book Chapter:Verse
+        let verses: { verse: number; text: string; }[] = [];
+        let book: string, chapterNum: number, startVerseNum: number, endVerseNum: number | null;
+
+        if (crossChapterMatch) {
+            // Not yet supported, fallback to old logic
+            new Notice('Cross-chapter references are not supported yet.');
+            return;
+        } else if (multiVerseMatch) {
+            let versePart;
+            [, book, chapterNum, versePart] = multiVerseMatch;
+            book = book.trim();
+            chapterNum = parseInt(chapterNum);
+            // Split by comma, handle ranges
+            let verseNumbers: number[] = [];
+            versePart.split(',').forEach(part => {
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(Number);
+                    for (let v = start; v <= end; v++) {
+                        verseNumbers.push(v);
+                    }
+                } else {
+                    verseNumbers.push(Number(part));
+                }
+            });
+            for (const v of verseNumbers) {
+                const verseData = this.db.getVerse(book, chapterNum, v, translation);
+                if (verseData) {
+                    verses.push({ verse: v, text: verseData.text });
+                }
+            }
+        } else if (match) {
+            [, book, chapterNum, startVerseNum] = match;
+            book = book.trim();
+            chapterNum = parseInt(chapterNum);
+            startVerseNum = startVerseNum ? parseInt(startVerseNum) : 1;
+            endVerseNum = startVerseNum;
+            const verseData = this.db.getVerse(book, chapterNum, startVerseNum, translation);
+            if (verseData) {
+                verses.push({ verse: startVerseNum, text: verseData.text });
+            }
+        } else {
             new Notice(`Invalid reference format: ${reference}`);
             return;
-        }
-
-        const [, book, chapter, startVerse, endVerse] = match;
-        const chapterNum = parseInt(chapter);
-        const startVerseNum = startVerse ? parseInt(startVerse) : 1;
-        const endVerseNum = endVerse ? parseInt(endVerse) : (startVerse ? startVerseNum : null);
-
-        // Get verse data
-        let verses: { verse: number; text: string; }[] = [];
-        const verseRange = endVerseNum 
-            ? Array.from({length: endVerseNum - startVerseNum + 1}, (_, i) => startVerseNum + i)
-            : [startVerseNum];
-
-        for (const verse of verseRange) {
-            const verseData = this.db.getVerse(book, chapterNum, verse, translation);
-            if (verseData) {
-                verses.push({ verse, text: verseData.text });
-            }
         }
 
         if (verses.length === 0) {
@@ -666,7 +691,7 @@ export default class BibleLinkPlugin extends Plugin {
         editor.replaceSelection(text);
 
         // Create virtual note for Dataview
-        this.createVerseNote(book, chapterNum, startVerseNum, translation);
+        // this.createVerseNote(book, chapterNum, startVerseNum, translation);
     }
 
     private formatReference(book: string, chapter: number, verse: number, translation: string): string {
