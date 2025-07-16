@@ -13,16 +13,18 @@ A powerful Obsidian plugin that integrates Bible verse data and provides seamles
 
 ## Installation
 
-1. **Manual Installation**:
-   - Download the latest release
-   - Extract to your Obsidian plugins folder: `.obsidian/plugins/obsidian-biblelink/`
-   - Enable the plugin in Obsidian settings
+### From GitHub Release
 
-2. **From Obsidian**:
-   - Go to Settings → Community plugins
-   - Turn off Safe mode
-   - Browse and search for "BibleLink"
-   - Install and enable the plugin
+1. Go to the [Releases](https://github.com/YOUR_GITHUB_USERNAME/obsidian-biblelink/releases) page.
+2. Download the latest `obsidian-biblelink.zip`.
+3. Unzip the file. Copy the contents (`main.js` and `manifest.json`) into a folder named `obsidian-biblelink` inside your vault’s `.obsidian/plugins/` directory.
+4. Reload Obsidian and enable the plugin in Settings → Community Plugins.
+
+### From Obsidian (when available)
+- Go to Settings → Community plugins
+- Turn off Safe mode
+- Browse and search for "BibleLink"
+- Install and enable the plugin
 
 ## Quick Start
 
@@ -224,3 +226,33 @@ For support and questions:
 ---
 
 **Note**: This plugin requires the Dataview plugin to be installed for DataviewJS functionality. Dataview's DQL (Dataview Query Language) cannot directly query plugin data, but DataviewJS provides full access to all BibleLink features. 
+
+---
+
+## Maintainer Release Instructions
+
+To create a new release for Obsidian:
+
+1. **Build the plugin**
+   ```bash
+   npm install
+   npm run build
+   ```
+   This generates `main.js` in the project root.
+
+2. **Prepare the release ZIP**
+   - Create a new folder (e.g., `obsidian-biblelink-release/`).
+   - Copy only these files into it:
+     - `main.js`
+     - `manifest.json`
+   - Zip the contents (not the folder itself) into `obsidian-biblelink.zip`.
+
+3. **Create a GitHub Release**
+   - Go to the repository’s Releases page.
+   - Click “Draft a new release.”
+   - Tag the release (e.g., `v1.0.0`).
+   - Add release notes summarizing changes.
+   - Upload `obsidian-biblelink.zip` as a release asset.
+   - Publish the release.
+
+**Note:** Do not include source files, node_modules, or development artifacts in the release ZIP. Only `main.js` and `manifest.json` are required for users. 
