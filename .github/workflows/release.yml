@@ -25,6 +25,13 @@ jobs:
       - name: Build
         run: npm run build
         
+      - name: Create plugin ZIP
+        run: |
+          mkdir plugin-dist
+          cp main.js manifest.json plugin-dist/
+          cd plugin-dist
+          zip -r ../obsidian-biblelink.zip .
+        
       - name: Create Release
         uses: actions/create-release@v1
         id: create_release
@@ -36,22 +43,12 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload main.js
+      - name: Upload plugin ZIP
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./main.js
-          asset_name: main.js
-          asset_content_type: application/javascript
-
-      - name: Upload manifest.json
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./manifest.json
-          asset_name: manifest.json
-          asset_content_type: application/json 
+          asset_path: ./obsidian-biblelink.zip
+          asset_name: obsidian-biblelink.zip
+          asset_content_type: application/zip 
