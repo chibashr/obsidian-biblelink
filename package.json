@@ -8,7 +8,7 @@
     "dev": "node esbuild.config.mjs --dev",
     "build:production": "node esbuild.config.mjs production",
     "clean": "rimraf main.js main.js.map",
-    "prepare": "npm run build"
+    "prepare": "npm run build:production"
   },
   "keywords": [
     "obsidian",
