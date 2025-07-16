@@ -29,8 +29,7 @@ jobs:
         run: |
           mkdir plugin-dist
           cp main.js manifest.json plugin-dist/
-          cd plugin-dist
-          zip -r ../obsidian-biblelink.zip .
+          (cd plugin-dist && zip ../obsidian-biblelink.zip main.js manifest.json)
         
       - name: Create Release
         uses: actions/create-release@v1
