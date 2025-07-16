@@ -35,22 +35,13 @@ jobs:
           (cd plugin-dist && zip ../obsidian-biblelink.zip main.js manifest.json)
 
       - name: Create or Update Release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-          update_existing: true
+          allowUpdates: true
+          artifacts: ./obsidian-biblelink.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload plugin ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_or_update_release.outputs.upload_url || steps.create_release.outputs.upload_url }}
-          asset_path: ./obsidian-biblelink.zip
-          asset_name: obsidian-biblelink.zip
-          asset_content_type: application/zip 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
