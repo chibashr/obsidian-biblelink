@@ -25,13 +25,6 @@ jobs:
       - name: Build
         run: npm run build
         
-      - name: Create release package
-        run: |
-          mkdir biblelink
-          cp main.js manifest.json biblelink/
-          cp -r data biblelink/ 2>/dev/null || true
-          zip -r biblelink.zip biblelink/
-          
       - name: Create Release
         uses: actions/create-release@v1
         id: create_release
@@ -42,13 +35,23 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-          
-      - name: Upload Release Asset
+
+      - name: Upload main.js
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./biblelink.zip
-          asset_name: biblelink.zip
-          asset_content_type: application/zip 
+          asset_path: ./main.js
+          asset_name: main.js
+          asset_content_type: application/javascript
+
+      - name: Upload manifest.json
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./manifest.json
+          asset_name: manifest.json
+          asset_content_type: application/json 
